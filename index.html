@@ -2,33 +2,75 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>タイマー</title>
+  <title>カウントダウンタイマー</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin-top: 100px;
+      background: #f0f4f8;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
     }
-    #timer {
-      font-size: 48px;
+    h1 {
+      color: #333;
       margin-bottom: 20px;
     }
+    #timer {
+      font-size: 64px;
+      font-weight: bold;
+      color: #2c3e50;
+      margin: 20px 0;
+    }
+    .controls {
+      margin-bottom: 20px;
+    }
+    input[type="number"] {
+      width: 60px;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      margin: 0 5px;
+    }
     button {
-      font-size: 18px;
+      background-color: #3498db;
+      border: none;
+      color: white;
       padding: 10px 20px;
+      margin: 0 5px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #2980b9;
     }
   </style>
 </head>
 <body>
   <h1>カウントダウンタイマー</h1>
+
+  <div class="controls">
+    <label>分: <input type="number" id="minutesInput" value="5" min="0"></label>
+    <label>秒: <input type="number" id="secondsInput" value="0" min="0" max="59"></label>
+  </div>
+
   <div id="timer">05:00</div>
-  <button onclick="startTimer()">スタート</button>
-  <button onclick="resetTimer()">リセット</button>
+
+  <div class="buttons">
+    <button onclick="startTimer()">スタート</button>
+    <button onclick="resetTimer()">リセット</button>
+  </div>
+
+  <audio id="alarmSound" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
 
   <script>
-    let duration = 300; // 5分（秒単位）
     let timer;
-    let timeLeft = duration;
+    let timeLeft = 300;
 
     function updateDisplay() {
       const minutes = String(Math.floor(timeLeft / 60)).padStart(2, '0');
@@ -38,6 +80,15 @@
 
     function startTimer() {
       if (timer) return; // すでに動作中なら何もしない
+
+      const minutesInput = parseInt(document.getElementById('minutesInput').value) || 0;
+      const secondsInput = parseInt(document.getElementById('secondsInput').value) || 0;
+      timeLeft = minutesInput * 60 + secondsInput;
+
+      if (timeLeft <= 0) return;
+
+      updateDisplay();
+
       timer = setInterval(() => {
         if (timeLeft > 0) {
           timeLeft--;
@@ -45,6 +96,7 @@
         } else {
           clearInterval(timer);
           timer = null;
+          document.getElementById('alarmSound').play();
           alert("時間です！");
         }
       }, 1000);
@@ -53,11 +105,12 @@
     function resetTimer() {
       clearInterval(timer);
       timer = null;
-      timeLeft = duration;
+      const minutesInput = parseInt(document.getElementById('minutesInput').value) || 0;
+      const secondsInput = parseInt(document.getElementById('secondsInput').value) || 0;
+      timeLeft = minutesInput * 60 + secondsInput;
       updateDisplay();
     }
 
-    // 初期表示を更新
     updateDisplay();
   </script>
 </body>
