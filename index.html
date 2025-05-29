@@ -1,214 +1,64 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>拡張機能付きスマホタイマー</title>
+  <meta charset="UTF-8">
+  <title>タイマー</title>
   <style>
     body {
-      margin: 0;
-      padding: 20px;
-      font-family: sans-serif;
-      background-color: #f4f4f4;
+      font-family: Arial, sans-serif;
       text-align: center;
+      margin-top: 100px;
     }
-
-    h1 {
+    #timer {
+      font-size: 48px;
       margin-bottom: 20px;
-      font-size: 24px;
     }
-
-    .input-group {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
-    }
-
-    label {
-      font-size: 16px;
-    }
-
-    input[type="number"], textarea {
-      width: 80%;
-      font-size: 18px;
-      padding: 8px;
-      text-align: center;
-    }
-
-    textarea {
-      height: 60px;
-    }
-
     button {
-      padding: 12px 20px;
-      margin: 10px 5px;
       font-size: 18px;
-      border: none;
-      border-radius: 5px;
-      background-color: #007BFF;
-      color: white;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background-color: #0056b3;
-    }
-
-    #timeDisplay {
-      font-size: 32px;
-      margin-top: 20px;
-    }
-
-    canvas {
-      margin-top: 20px;
+      padding: 10px 20px;
     }
   </style>
 </head>
 <body>
-
-  <h1>拡張機能付きスマホタイマー</h1>
-
-  <div class="input-group">
-    <label>分:</label>
-    <input type="number" id="minutes" min="0" value="1" />
-    <label>秒:</label>
-    <input type="number" id="seconds" min="0" value="0" />
-    <label>ベルを鳴らすタイミング（秒, カンマ区切り）:</label>
-    <textarea id="bellTimes">30,10</textarea>
-  </div>
-
-  <div>
-    <button onclick="startTimer()">スタート</button>
-    <button onclick="pauseResumeTimer()">一時停止 / 再開</button>
-    <button onclick="resetTimer()">リセット</button>
-    <button onclick="restartTimer()">リスタート</button>
-  </div>
-
-  <canvas id="timerCanvas" width="200" height="200"></canvas>
-  <div id="timeDisplay">00:00</div>
-
-  <!-- 音声ファイル読み込み -->
-  <audio id="bellSound" src="bell.mp3" preload="auto"></audio>
-  <audio id="finishSound" src="finish.mp3" preload="auto"></audio>
+  <h1>カウントダウンタイマー</h1>
+  <div id="timer">05:00</div>
+  <button onclick="startTimer()">スタート</button>
+  <button onclick="resetTimer()">リセット</button>
 
   <script>
-    let totalTime = 0;
-    let timeLeft = 0;
+    let duration = 300; // 5分（秒単位）
     let timer;
-    let isPaused = false;
-    let bellNotified = [];
-    let bellTimes = [];
+    let timeLeft = duration;
 
-    const canvas = document.getElementById("timerCanvas");
-    const ctx = canvas.getContext("2d");
-    const bellAudio = document.getElementById("bellSound");
-    const finishAudio = document.getElementById("finishSound");
-
-    function startTimer() {
-      clearInterval(timer);
-      isPaused = false;
-      bellNotified = [];
-
-      const mins = parseInt(document.getElementById("minutes").value) || 0;
-      const secs = parseInt(document.getElementById("seconds").value) || 0;
-      bellTimes = document.getElementById("bellTimes").value.split(",").map(s => parseInt(s.trim())).filter(n => !isNaN(n));
-
-      totalTime = timeLeft = mins * 60 + secs;
-      if (totalTime <= 0) {
-        alert("1秒以上の時間を設定してください。");
-        return;
-      }
-
-      updateDisplay(timeLeft);
-      drawCircle(1);
-      startCountdown();
+    function updateDisplay() {
+      const minutes = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+      const seconds = String(timeLeft % 60).padStart(2, '0');
+      document.getElementById('timer').textContent = `${minutes}:${seconds}`;
     }
 
-    function startCountdown() {
+    function startTimer() {
+      if (timer) return; // すでに動作中なら何もしない
       timer = setInterval(() => {
-        if (!isPaused) {
+        if (timeLeft > 0) {
           timeLeft--;
-          updateDisplay(timeLeft);
-          drawCircle(timeLeft / totalTime);
-
-          bellTimes.forEach(bt => {
-            if (timeLeft === totalTime - bt && !bellNotified.includes(bt)) {
-              bellNotified.push(bt);
-              playBell();
-            }
-          });
-
-          if (timeLeft <= 0) {
-            clearInterval(timer);
-            playFinish();
-            if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
-            alert("時間になりました！");
-          }
+          updateDisplay();
+        } else {
+          clearInterval(timer);
+          timer = null;
+          alert("時間です！");
         }
       }, 1000);
     }
 
-    function pauseResumeTimer() {
-      if (!timer) return;
-      isPaused = !isPaused;
-    }
-
     function resetTimer() {
       clearInterval(timer);
-      timeLeft = 0;
-      bellNotified = [];
-      updateDisplay(0);
-      drawCircle(0);
+      timer = null;
+      timeLeft = duration;
+      updateDisplay();
     }
 
-    function restartTimer() {
-      if (totalTime > 0) {
-        clearInterval(timer);
-        timeLeft = totalTime;
-        bellNotified = [];
-        updateDisplay(timeLeft);
-        drawCircle(1);
-        isPaused = false;
-        startCountdown();
-      }
-    }
-
-    function updateDisplay(time) {
-      const mins = String(Math.floor(time / 60)).padStart(2, '0');
-      const secs = String(time % 60).padStart(2, '0');
-      document.getElementById("timeDisplay").textContent = `${mins}:${secs}`;
-    }
-
-    function playBell() {
-      bellAudio.currentTime = 0;
-      bellAudio.play();
-      if (navigator.vibrate) navigator.vibrate(200);
-    }
-
-    function playFinish() {
-      finishAudio.currentTime = 0;
-      finishAudio.play();
-    }
-
-    function drawCircle(percent) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const centerX = canvas.width / 2;
-      const centerY = canvas.height / 2;
-      const radius = 80;
-
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-      ctx.strokeStyle = '#e0e0e0';
-      ctx.lineWidth = 10;
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, radius, -0.5 * Math.PI, (2 * Math.PI * percent) - 0.5 * Math.PI);
-      ctx.strokeStyle = '#007BFF';
-      ctx.lineWidth = 10;
-      ctx.stroke();
-    }
+    // 初期表示を更新
+    updateDisplay();
   </script>
 </body>
 </html>
